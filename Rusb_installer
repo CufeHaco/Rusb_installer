@@ -1,0 +1,660 @@
+#!usr/bin/env ruby
+#=========================================================================
+#  Rusb_installer
+#  
+#  Copyright 2019 Cufe <cufe@cufe-Presario-CQ62-Notebook-PC>
+#  
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
+#  
+#  
+#=========================================================================
+
+module Install_core
+puts Time.now
+sleep(1)
+puts "Preping system for required install/updates..."
+sleep(1)
+puts "Updating/installing tcl8.6-dev and tk8.6-dev"
+`sudo apt-get install tcl8.6-dev`
+`sudo apt-get install tk8.6-dev`
+sleep(1)
+puts "Installing Ruby-All-dev"
+sleep(1)
+`sudo apt-get install ruby-all-dev`.chomp
+sleep(1)
+ 
+link_a = File.exists?("/usr/lib/tclConfig.sh")
+ link_b = File.exists?("/usr/lib/tkConfig.sh")
+ link_c = File.exists?("/usr/lib/libtcl8.6.so.0")
+ link_d = File.exists?("/usr/lib/libtk8.6.so.0")
+ 
+ unless link_a || link_b || link_c || link_d == false
+ puts "creating softlinks"
+ `sudo ln -s /usr/lib/x86_64-linux-gnu/tcl8.6/tclConfig.sh /usr/lib/tclConfig.sh` 
+`sudo ln -s /usr/lib/x86_64-linux-gnu/tk8.6/tkConfig.sh /usr/lib/tkConfig.sh`	   
+`sudo ln -s /usr/lib/x86_64-linux-gnu/libtcl8.6.so.0 /usr/lib/libtcl8.6.so.0`	   
+`sudo ln -s /usr/lib/x86_64-linux-gnu/libtk8.6.so.0 /usr/lib/libtk8.6.so.0`	
+end	
+
+if  link_a || link_b || link_c || link_d == true
+puts "simbolic Links already exist"
+end  
+  sleep(1)
+puts "Installing TK GEM with TCL8.6-dev"
+sleep(1)
+ check_tk = File.exists?("#{`gem which tk`.chomp}")
+ if check_tk == false
+`sudo gem install tk -- --with-tcltkversion=8.6 \
+--with-tcl-lib=/usr/lib/x86_64-linux-gnu \
+--with-tk-lib=/usr/lib/x86_64-linux-gnu \
+--with-tcl-include=/usr/include/tcl8.6 \
+--with-tk-include=/usr/include/tcl8.6 \
+--enable-pthread`.chomp 
+
+end
+if check_tk == true
+"Tk gem is already Installed"
+end
+check_sudo = File.exists?("#{`gem which sudo`.chomp}")
+if check_sudo == false
+puts "Installing Sudo GEM" ; sleep(1)
+`sudo gem install sudo`
+end
+if check_sudo == true
+puts "Sudo gem already installed"
+end
+end
+
+class Install
+	def initialize
+	require 'sudo'
+		
+	def $usr_input::nil
+	end	
+		
+	def uninstall
+	sudo = Sudo::Wrapper.new
+	sudo.start!
+		rusb_dir = Dir.exists?("/home/#{`echo $USER`.chomp}/Rusb")
+	rusb_rb = File.exists?("/home/#{`echo $USER`.chomp}/Rusb/RusbBetaV1.rb")
+	rusb_desktop = File.exists?("/usr/share/applications/Rusb.desktop")
+	puts "Uninstalling Rusb Manager..." ; sleep(1)
+	File.delete("/home/#{`echo $USER`.chomp}/Rusb/RusbBetaV1.rb") if rusb_rb == true
+	sudo[File].delete("/usr/share/applications/Rusb.desktop") if rusb_desktop == true
+	Dir.rmdir("/home/#{`echo $USER`.chomp}/Rusb") if rusb_dir == true
+	sudo.stop!
+	puts "Rusb Manager has been removed from your system." ; sleep(1)
+	exit(0)	
+	end
+	
+	def dir_check
+	rusb_dir = Dir.exists?("/home/#{`echo $USER`.chomp}/Rusb")
+	rusb_rb = File.exists?("/home/#{`echo $USER`.chomp}/Rusb/RusbBetaV1.rb")
+	rusb_desktop = File.exists?("/usr/share/applications/Rusb.desktop")
+	
+		if rusb_dir || rusb_rb ||rusb_desktop == true
+		puts "RUSB files found.  Do you want to Uninstall?[Y/n]"
+	
+		loop do
+		print "=====> " ; $usr_input = gets.chomp
+	
+			if $usr_input =~ /Y|y/
+			uninstall
+			$usr_input.clear
+			end
+	
+			if $usr_input =~ /N|n/
+			exit_install
+			$usr_input.clear
+			end
+		
+			if $usr_input !~ /Y|y|N|n/
+			invalid_input
+			$usr_input.clear
+			end
+		
+			break if $usr_input =~ /Y|y|N|n/
+			end	
+		end
+	end	
+		
+	
+	def start_install
+	
+	sudo = Sudo::Wrapper.new
+	
+	a = proc{puts "Starting RUSB MANAGER Install..." ; sleep(1)}
+	a.call
+	
+	b = proc{puts "Checking User login..." ; sleep(1) ;
+			Dir.chdir("/home/#{`echo $USER`.chomp}")}
+	b.call
+	
+	c = proc{dir_check
+	puts "Rusb Manager Files not found.  Prepairing Install..." ; sleep(1)
+	Dir.mkdir("/home/#{`echo $USER`.chomp}/Rusb")
+	puts "Directory /home/#{`echo $USER`.chomp}/Rusb created!" ; sleep(1)
+	Dir.chdir("/home/#{`echo $USER`.chomp}/Rusb/")
+	}
+	c.call
+	
+	d = proc{puts "Creating RUSB MANAGER" ; sleep(1)
+	rusb = File.new("RusbBetaV1.rb" , 'w') ;
+	rusb.puts(%q^#!usr/bin/env ruby
+#===========================================================================
+# RUSB TOOL: CREATED BY CUFE HACO 5/11/2019
+#--------------------------------------------------------------------------
+# RUSB Beta 1.0  started 5/27/2019 // Finnished 6/2/2019
+# 
+# RUSB ALPHA OPTIONS:
+# FORMAT USB FLASH/EXTERNAL DRIVES.
+# CREATE BOOTABLE FLASH DRIVES
+# MANAGE MULTIPAL FLASH DRIVES FOR FILE STORAGE
+# ------------------------------------------------------------------------
+# KNOWN BUGS!!!
+# MAKE SURE YOU DONT HAVE ANY EXTRA MOUNTED PARTITIONS OF YOUR HARD DRIVE! 
+# RUSB WILL NOT OPEN THE FILE MANAGER FOR BOOTABLE FLASH DRIVES!
+# PLEASE REPORT ANY OTHER BUGS TO CRAZYRABBITKING89@GMAIL.COM
+#-------------------------------------------------------------------------
+# THIS IS THE FIRST ALPHA VERSION OF RUSB. TO ENSURE SAFETY OF YOUR SYSTEM,
+# MAKE SURE THAT NO SECONDARY PARTITIONS OF YOUR HARD DRIVE ARE MOUNTED.
+# TAMPERING WITH THIS SCRIPT CAN LEAD TO DAMAGE TO YOUR SYSTEM.
+# THIS RELEASE IS SAFE TO USE, HOWEVER, I AM NOT LIABLE FOR ANY DAMAGES,
+# FOR MISUSE OF THIS PROGRAM. 
+#------------------------------------------------------------------------
+#PROGRAM REQUIRMENTS:
+# DEBIAN BASED OPERATING SYSTEM (UBUNTU, MINT, RASPBIAN, ETC.)
+# RUBYTK (ANY RUBY VERSION ABOVE 2.3 REQUIRES THE TK PATCH THAT CAN BE FOUND:
+# https://github.com/CufeHaco/Tk_Patch
+#==========================================================================
+#  
+#  Copyright 2019 Cufe <cufe@cufe-Presario-CQ62-Notebook-PC>
+#  
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
+#  
+#  
+#=========================================================================
+
+
+require 'tk'
+require 'sudo'
+require 'io/console'
+require 'open3'
+
+#---------------------------------------------------------------------------
+class Rusb_gui
+	def initialize
+					 
+header_font = TkFont.new("size" => 16 , "weight" => 'bold')	
+header2_font = TkFont.new('size' => 12)
+
+@header2_var = TkVariable.new 
+@usr_pass = TkVariable.new
+
+refresh = proc {usb_drives}
+check_mount = proc {select_drive}
+format_window_proc = proc {format_window}
+iso_writer_proc = proc {iso_writer}
+device_info_proc = proc {device_info}
+
+#---------------------------------------------------------------------------
+
+$main_win = TkRoot.new {title "RUSB: Ruby USB Tool Alpha Version 2.0"}
+
+frame1 = TkFrame.new($main_win) {
+						borderwidth 5       ;
+						padx 15	            ;
+						pady 15             ;
+						relief 'groove'     ;
+						pack('fill' => 'x') ;
+						
+					 }	
+
+frame2 = TkFrame.new(frame1) {
+							  borderwidth 5
+							  padx 15
+							  pady 15
+							  relief 'sunken'
+							  pack('side'=>'bottom')							  
+							  }
+							  
+frame3 = TkFrame.new($main_win) {
+						borderwidth 5       ;
+						padx 15	            ;
+						pady 15             ;
+						relief 'groove'     ;
+						pack('fill' => 'x') ;
+						}
+
+$main_win['geometry'] = "600x465"
+
+header = TkLabel.new(frame1) {font header_font        ;
+					  text "RUSB MANAGER" ;
+					  pack
+
+                     }
+
+header2 = TkLabel.new(frame1){ font header2_font ;
+					   text " User logged in as: #{`echo $USER`.chomp}"
+					   pack
+					 }
+					 
+#spacer_label = TkLabel.new(frame1) {text " " ; pack('padx'=>10, 'pady'=>5, 'side'=>'top')}
+usb_drive_label = TkLabel.new(frame1) {text "USB DRIVES" ; pack('padx'=>10, 'pady'=>5, 'side'=>'top')}
+@usb_list = Tk::Tile::Combobox.new(frame1){pack }
+@usb_list.values = []
+	
+button_info1 = TkLabel.new(frame1) {
+									text "Refresh the device list"
+									pack
+									}
+
+refresh_button = TkButton.new(frame1) {
+								 text "Refresh list" ;
+								 command refresh ;
+								 pack('padx'=>10, 'pady'=>5, 'side'=>'top')
+
+button_info2 = TkLabel.new(frame1) {
+									text "Shows Information about selected device"
+									pack
+									}
+									
+drive_info_button = TkButton.new(frame1) {
+							      text "Device Information"
+							      command device_info_proc
+							      pack('padx'=>10, 'pady'=>5, 'side'=>'top')
+							      }											
+									
+button_info3 = TkLabel.new(frame1) {
+									text "Opens device folder"
+									pack
+									}									
+																	  
+									  }
+open_usb_folder = TkButton.new(frame1) {
+						   text "View USB Files"
+						   command check_mount
+						   pack('padx'=>10, 'pady'=>5, 'side'=>'top')
+						   						   }
+					     
+			     
+					     
+format_menu_button = TkButton.new(frame2) {
+								   text "Open Format Utility"
+								   command format_window_proc
+								   pack('padx'=>5, 'pady'=>5, 'side'=>'left')
+	                               }		
+
+imagewrite_button = TkButton.new(frame2) {
+								  text "Open Image Writer Utility"
+								  command iso_writer_proc
+								  pack('padx'=>5, 'pady'=>5, 'side'=>'right')
+								  }
+
+
+			
+#--------------------------------------------------------------------------------			
+
+def usb_drives
+		a = `mount|grep /media|awk '{print $3}'`.length
+		b = `mount|grep /media|awk '{print $1}'`.length
+		c = `mount|grep /media|awk '{print $5}'`.length
+		
+		if a == 0
+		@usb_list.values = []
+		end
+		if a > 0
+		@usb_list.values = `mount|grep /media|awk '{print $3}'`.split
+		end
+		
+	if b == 0
+	@root_dir_path = []
+  end
+ if b > 0
+ @root_dir_path = `mount|grep /media|awk '{print $1}'`.split
+ end
+ 
+	if c == 0
+	@drive_partition = []
+	end
+	if c > 0
+	@drive_partition  = `mount|grep /media|awk '{print $5}'`.split
+	end
+ end
+ 
+#---------------------------------------------------------------------------
+	
+	def select_drive
+	mounted_drives = @usb_list.values.count
+		if mounted_drives == 0
+		Tk::messageBox :message => 'No USB Drives Found!'
+		end
+		if mounted_drives > 0
+		system "xdg-open #{@usb_list.values["#{@usb_list.current}".to_i]}"
+		end
+
+	end
+
+	def format_window
+	a = `mount|grep /media|awk '{print $3}'`.length
+
+		if a == 0
+		Tk::messageBox :message => "No Devices Detected!"
+		end
+		if a > 0 
+		
+		current_drive =  @usb_list.values["#{@usb_list.current}".to_i]
+		@root_dir =  @root_dir_path["#{@usb_list.current}".to_i]
+		format = proc {format_function}
+		header2_font = TkFont.new('size' => 12)
+
+		@f_subwin = TkToplevel.new($main_win){title "RUSB FORMAT UTILITY"}
+		@f_subwin['geometry'] = '400x200'
+
+		f_subwin_header = TkLabel.new(@f_subwin){ font header2_font
+												  text "RUSB FORMAT UTILITY"
+												  pack
+												}
+
+		f_drive_label = TkLabel.new(@f_subwin){
+												text "Ready to format:  #{current_drive}"
+												pack 
+												}
+
+		format_type_label = TkLabel.new(@f_subwin){
+													text "Select Partition type:"
+													pack
+													}
+
+		@format_type = Tk::Tile::Combobox.new(@f_subwin){pack}
+		@format_type.values = ["VFAT", "NTFS", "LINUX-SWAP"]
+
+		format_button = TkButton.new(@f_subwin) {
+										text "FORMAT"
+										command format
+										pack
+										}
+										
+
+		end
+		
+#---------------------------------------------------------------------------		
+		def format_function
+		Tk::messageBox :message => "Ready to format #{@root_dir} to #{ @format_type.values["#{@format_type.current}".to_i]}"
+		`umount #{@root_dir} ` 
+        `echo #{@usr_pass} | sudo -S mkfs.#{@format_type.values["#{@format_type.current}".to_i].downcase} #{@root_dir}` 
+		@status_array = @status.to_s.split
+			if @status_array[3] == "0"
+			Tk::messageBox :message => "USB Drive Format Complete!
+Please remove Device."
+		@f_subwin.destroy
+		    end
+		    
+		end
+	end
+ 
+#---------------------------------------------------------------------------
+		def iso_writer
+d = `mount|grep /media|awk '{print $3}'`.length
+		if d == 0
+		 Tk::messageBox :message => "No Devices Detected!"
+		 end
+
+		if d > 0
+		
+		current_drive =  @usb_list.values["#{@usb_list.current}".to_i]
+		header2_font = TkFont.new('size' => 12)
+
+		@dir_path = TkVariable.new
+		@dir_path.value = "/home/#{`echo $USER`.chomp}/"
+		write_image_proc = proc {write_image}
+
+		@iso_subwin = TkToplevel.new($main_win){title "RUSB Image Writer"}
+		@iso_subwin['geometry'] = '400x200'
+
+		iso_label = TkLabel.new(@iso_subwin) { font header2_font
+												text "RUSB IMAGE WRITER UTILITY"
+												pack
+												}
+
+		drive_write_label = TkLabel.new(@iso_subwin){
+													text "Ready to Write Image to:  #{current_drive}"
+													pack 
+													}
+
+		iso_dir_label = TkLabel.new(@iso_subwin){
+												text "Image Directory Path"
+												pack
+												}
+										 
+		iso_dir_entry = TkEntry.new(@iso_subwin , 'textvariable' => @dir_path) {  
+																				width 30
+									  											pack
+																				}
+									  
+		iso_write_button = TkButton.new(@iso_subwin) {
+														text "Write Image"
+														command write_image_proc
+														pack
+														}
+		end												
+
+#---------------------------------------------------------------------------
+
+		def write_image
+		
+		
+		a = File.exists?("#{@dir_path}")
+
+			if a != true
+			Tk::messageBox :message => "Directory Does Not Exist!"
+			end
+
+			if a != false
+			b = File.extname("#{@dir_path}")
+				if b != ".iso"
+				Tk::messageBox :message => "Invalid File type! Must be .iso file!"
+				end
+			end
+			
+			if b == ".iso"	
+			Tk::messageBox :message => " Creating Boot Image:
+#{@dir_path}
+to #{@root_dir_path["#{@usb_list.current}".to_i]}"
+system "echo #{@usr_pass} | sudo -S dd if=#{@dir_path} of=#{@root_dir_path["#{@usb_list.current}".to_i]} bs=4M && sync"
+Tk::messageBox :message =>  "New Boot Image Created!"
+@iso_subwin.destroy
+		end
+	 
+end
+
+
+end 
+ 
+#--------------------------------------------------------------------------- 
+ 
+ def device_info
+ c = `mount|grep /media|awk '{print $5}'`.length
+	if c == 0
+ Tk::messageBox :message => "No Devices Detected!"
+	end
+	if c > 0
+ Tk::messageBox :message => "#{@usb_list.values["#{@usb_list.current}".to_i]} mounted on #{@root_dir_path["#{@usb_list.current}".to_i]}.
+ partition type :#{@drive_partition["#{@usb_list.current}".to_i]}"
+ 
+ 
+	end
+	
+
+	
+ end
+ #-------------------------------------------------------------------------------------------------------------------------------
+ def pass_win
+ a = proc{
+		  @out, @status = Open3.capture2e("echo #{@usr_pass} | sudo -S echo $USER")
+		  out_array = @out.to_s.split
+		  status_array = @status.to_s.split
+		  if status_array.last == "0"
+		  Tk::messageBox :message => "User: #{out_array.last} password is correct!"
+			@pass_win.destroy
+			$main_win.deiconify
+			end
+		 if status_array.last == "1"	
+			Tk::messageBox :message => "Password is Incorrect! Try again!"
+			end
+			}
+  
+  
+ @pass_win = TkToplevel.new($main_win) {title "RUSB UTILITY:"  }
+$main_win.withdraw
+@pass_win['geometry'] = '400x100'
+@pass_win.protocol('WM_DELETE_WINDOW', proc{ a =Tk::messageBox :message => "RUSB requires sudo privlages.\n Do you wish to exit?",:type => "yesno"
+if a == 'yes'
+exit(0)
+end})
+
+
+ 
+ pass_label = TkLabel.new(@pass_win){ text "User Password required for RUSB:" ; pack }
+
+pass_entry = TkEntry.new(@pass_win, 'textvariable' => @usr_pass){
+								 show '*'
+								 pack('padx'=>10, 'pady'=>5, 'side'=>'top')
+								 }
+ confirm_button = TkButton.new(@pass_win) {
+										   text "Confirm"
+										   command a
+										   pack
+										   }
+
+
+
+  end
+#--------------------------------------------------------------------------------------------------------------------------------
+ 
+ 
+ refresh.call
+  
+  pass_win
+  
+ #-------------------------------------------------------------------------------------------------------------------------------
+Tk.mainloop
+	end
+end
+#---------------------------------------------------------------------------
+
+
+Rusb_gui.new^) ; rusb.close	
+	}
+	d.call
+	
+	e = proc{puts "Creating Rusb.desktop" 
+	Dir.chdir("/usr/share/applications")
+	sudo.start!
+	desktop = sudo[File].new("Rusb.desktop" ,"w")
+	desktop.puts(%Q^[Desktop Entry]
+Encoding=UTF-8
+Version=Beta 1.0
+Name=RUSB Manager
+Comment=
+Categories=Utility;Development;Network
+Type=Application
+Terminal=false
+Exec=ruby /home/#{`echo $USER`.chomp}/Rusb/RusbBetaV1.rb
+Icon= /home/#{`echo $USER`.chomp}/Rusb_installer/icons/rubyicon.png
+
+	
+	^) ; desktop.close ; sudo.stop!}
+	e.call
+	puts "Rusb Manager is installed!" ;sleep(1)
+	exit_install
+	end
+	
+    def exit_install
+	a = proc{puts "now Exiting installer"}
+	a.call
+	exit(0)
+end
+
+def invalid_input
+	a = proc{ puts "Invalid Input. Press Y|y or N|n to start or end Installer. " ; }
+	$usr_input.clear
+	a.call
+end
+
+def install_choice
+	loop do
+	print " Continue?...: " ; $usr_input = gets.chomp
+
+	   if $usr_input =~ /Y|y/ 
+	   start_install
+	   $usr_input.clear
+	   end
+	   
+	   if $usr_input =~ /N|n/
+	   $usr_input.clear
+	   exit_install
+	   end
+	   if $usr_input  !~ /Y|y|N|n/
+	   $usr_input.clear
+	   invalid_input
+	   end
+					 break if $usr_input =~ /Y|y|N|n/
+				
+		end
+end	
+	
+#==============================================================================================
+
+puts "========================================================================"
+puts "---------------------------RUSB INSTALLER-------------------------------"
+puts "========================================================================"
+puts "                                                                        "
+puts "				 Welcome to the Rusb Manager Install Script!              "
+puts " Rusb Manager is a flash drive tool to help users configure flash drives"
+puts " and usb external hard drives for Deb based Linux Distros.              "
+puts "Rusb Manager Features:                                                  "
+puts "--Viewing drive files                                                   "
+puts "--formatting Flash Drives												  "
+puts "--Creating Bootable Flash Drives                                        "
+puts "                                                                        "
+puts "Future Updates:                                                         "
+puts "--Multi flash drive formats                                             "
+puts "-- Multi Image writing                                                  "
+puts "                                                                        "
+puts "Would you like to install Rusb Manager?[Y/n]                            "
+
+install_choice                                 
+	
+		
+	end
+end
+
+Install.new
+
